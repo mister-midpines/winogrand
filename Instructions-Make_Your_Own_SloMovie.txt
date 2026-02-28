@@ -1,0 +1,108 @@
+# Instructions (Additional notes are pasted below.)
+
+# To get started:
+# - Get your preferred movie, in *.mp4 format
+# - Clone the SloMovie_Template into your own SloMovie repository, named for the movie.
+# - Set up the new repository as a web site using <go to repository> -> Settings ->
+#   Pages [in sidebar] -> Build and Deployment, then Set Branch to Main
+# - Install imagemagick and ffmpeg
+# - The scripts below are written to run in the bash shell
+
+# Specify the name of the movie as a bash variable
+movie_name="alien" # Make sure this matches its name in github
+
+# Subsequent commands split a movie in mp4 format into frames, and incrementally modify
+# them to a format that will look good on a TRMNL.
+
+# Make directories to hold the intermediate edited images
+mkdir orig_frames gray_frames contrast_frames cropped_frames for_github
+
+# Strip frames out of the mp4 movie with the name above
+ffmpeg -i "$movie_name".mp4 -r 1 %04d.png
+wait
+
+# Skim through the frames manually, and delete any you don't want, such as excessive
+# blank/black frames at the beginning and end of the movie.
+
+# Renumber and rename files after removing unwanted frames
+i=0
+for orig_filename in *.png
+do
+      	    ((i+=1))
+            new_number=$(printf "%04.0f" $i)
+            mv "$orig_filename" "seq-$new_number.png"
+done
+wait
+
+cp *.png orig_frames
+wait
+
+
+# Crop so ratio is 800/480 = 1.666
+# NOTE: Image Magick throws a warning over this. Ignore it.
+for j in *.png
+    do
+    	magick convert "$j" -gravity center -crop 800:480 "$j"
+done
+wait
+
+# Rescale so height is 480 (which will make width 800)
+for j in *.png
+    do
+	echo "$j"
+	magick convert -resize x480 "$j" "$j"
+done
+
+cp *.png cropped_frames
+wait
+
+# Convert to grayscale
+for j in *.png
+    do
+	echo "$j"
+	magick convert "$j" -set colorspace Gray -separate -average "$j"
+done
+wait
+
+cp *.png gray_frames
+wait
+
+#-----------------------------
+# Pause here to check the brighness and contrast in the images created by the previous command.
+# Change them by experimenting with the command below to find parameters that work.
+# _____________________________
+
+# Change brightness and contrast
+for j in *.png
+    do
+	echo "$j"
+	magick convert -brightness-contrast 15x35 "$j" "$j" # Adjust the numbers to change the brighness and contrast
+done
+wait
+
+cp *.png contrast_frames
+wait
+
+# Make an image list
+ls -1 *.png > image_list.txt
+sed -i -e "s|^|frames/|" image_list.txt  # Add 'frames/' to the start of each line
+mv image_list.txt for_github
+
+mkdir for_github/frames
+mv *.png for_github/frames
+
+# Move the new SloMovie files onto github.
+
+git clone https://github.com/<your_user_name>/"$movie_name"
+cd "$movie_name"
+
+git rm _data/image_list.txt
+cp ../for_github/image_list.txt _data
+git add _data/image_list.txt
+
+cp ../for_github/frames/*.png frames
+git add frames/*.png
+
+git commit
+
+git push # If there's a problem try git push -f origin main
