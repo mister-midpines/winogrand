@@ -76,7 +76,7 @@ wait
 for j in *.png
     do
 	echo "$j"
-	magick convert -brightness-contrast 15x35 "$j" "$j" # Adjust the numbers to change the brighness and contrast
+	magick convert -brightness-contrast 5x15 "$j" "$j" # Adjust the numbers to change the brighness and contrast
 done
 wait
 
